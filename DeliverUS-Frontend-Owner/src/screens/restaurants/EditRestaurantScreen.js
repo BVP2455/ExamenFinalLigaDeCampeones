@@ -15,14 +15,17 @@ import { ErrorMessage, Formik } from 'formik'
 import TextError from '../../components/TextError'
 import { prepareEntityImages } from '../../api/helpers/FileUploadHelper'
 import { buildInitialValues } from '../Helper'
+import TextSemiBold from '../../components/TextSemibold'
+import ConfirmationModal from '../../components/ConfirmationModal'
 
 export default function EditRestaurantScreen ({ navigation, route }) {
   const [open, setOpen] = useState(false)
   const [restaurantCategories, setRestaurantCategories] = useState([])
   const [backendErrors, setBackendErrors] = useState()
-  const [restaurant, setRestaurant] = useState({})
+  const [restaurant, setRestaurant] = useState({})  
+  const [restaurantToBeDiscounted, setRestaurantToBeDiscounted] = useState([])
 
-  const [initialRestaurantValues, setInitialRestaurantValues] = useState({ name: null, description: null, address: null, postalCode: null, url: null, shippingCosts: null, email: null, phone: null, restaurantCategoryId: null, logo: null, heroImage: null })
+  const [initialRestaurantValues, setInitialRestaurantValues] = useState({ name: null, description: null, address: null, postalCode: null, url: null, shippingCosts: null, email: null, phone: null, restaurantCategoryId: null, logo: null, heroImage: null, percentage: 0.0 })
   const validationSchema = yup.object().shape({
     name: yup
       .string()
@@ -144,6 +147,22 @@ export default function EditRestaurantScreen ({ navigation, route }) {
     }
   }
 
+  const discount = async (values) => {
+    setBackendErrors([])
+    try {
+      const updatedRestaurant = await update(restaurant.id, values)
+      showMessage({
+        message: `Restaurant ${updatedRestaurant.name} succesfully discounted`,
+        type: 'success',
+        style: GlobalStyles.flashStyle,
+        titleStyle: GlobalStyles.flashTextStyle
+      })
+    } catch (error) {
+      console.log(error)
+      setBackendErrors(error.errors)
+    }
+  }
+
   return (
     <Formik
       enableReinitialize
@@ -178,6 +197,33 @@ export default function EditRestaurantScreen ({ navigation, route }) {
                 name='shippingCosts'
                 label='Shipping costs:'
               />
+
+              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end' }} >
+                <Pressable onPress={() => {let newPercentage = values.percentage + 0.5
+                  setFieldValue('percentage', newPercentage)
+                }}>
+                  <View style={[{ flex: 1, flexDirection: 'row', justifyContent: 'center' }]}>
+                    <MaterialCommunityIcons
+                      name={'arrow-up-circle'}
+                      color={GlobalStyles.brandSecondaryTap}
+                      size={40}
+                    />
+                  </View>
+                </Pressable>
+                <TextSemiBold>Porcentaje actual: <TextSemiBold textStyle={{ color: GlobalStyles.brandPrimary }}>{values.percentage.toFixed(2)}%</TextSemiBold></TextSemiBold>
+                <Pressable onPress={() => { let newPercentage = values.percentage - 0.5 
+                  setFieldValue('percentage', newPercentage)
+                }}>
+                  <View style={[{ flex: 1, flexDirection: 'row', justifyContent: 'center' }]}>
+                    <MaterialCommunityIcons
+                      name={'arrow-down-circle'}
+                      color={GlobalStyles.brandSecondaryTap}
+                      size={40}
+                    />
+                  </View>
+                </Pressable>
+              </View>
+
               <InputItem
                 name='email'
                 label='Email:'
@@ -252,6 +298,12 @@ export default function EditRestaurantScreen ({ navigation, route }) {
               </Pressable>
             </View>
           </View>
+          <ConfirmationModal
+            isVisible={restaurantToBeDiscounted !== null}
+            onCancel={() => setRestaurantToBeDiscounted(null)}
+            onConfirm={() => discount(restaurantToBeDiscounted)}>
+            <TextRegular>The products of this restaurant will be pinned</TextRegular>
+          </ConfirmationModal>
         </ScrollView>
       )}
     </Formik>
